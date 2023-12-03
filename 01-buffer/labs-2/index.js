@@ -12,3 +12,6 @@ assert.equal(base64, Buffer.from([
   86,104,100,65,61,61]))
 
 console.log('passed!')
+
+
+//Convert a String to base64 Encoded String by Using a Buffer
