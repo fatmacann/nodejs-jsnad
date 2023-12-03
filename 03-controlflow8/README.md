@@ -14,6 +14,13 @@ A control flow function is a lightweight, generic piece of code which runs in be
 
 There are three basic patterns for this.
 
+Kontrol akışı işlevi, birkaç eşzamansız işlev çağrısı arasında çalışan ve aşağıdakiler için gerekli düzenlemeleri yapan hafif, genel bir kod parçasıdır:
+
+- yürütme sırasını kontrol etmek,
+- veri topla,
+- eşzamanlılığı sınırlayın ve
+- programdaki bir sonraki adımı çağırın.
+
 ## 1: Series - an asynchronous for loop
 
 Given this common function:
@@ -42,6 +49,7 @@ series(items.shift());
 ```
 
 Basically, the callback pushes the result into the results array and then calls series with the next item in the items array. When the items array is empty, we call the final() function.
+Temel olarak geri çağırma, sonucu results dizisine iter ve ardından items dizisindeki bir sonraki öğeyle seriyi çağırır. items dizisi boş olduğunda final() fonksiyonunu çağırırız.
 
 ## 2: Full parallel - an asynchronous, parallel for loop
 
@@ -60,6 +68,7 @@ items.forEach(function(item) {
 ```
 
 We start async operations for each of the items immediately, then in the callback checks whether the number of results is equal to the number of items to process. If it is, then we call the final() function.
+Öğelerin her biri için eşzamansız işlemleri hemen başlatırız, ardından geri aramada sonuç sayısının işlenecek öğe sayısına eşit olup olmadığını kontrol ederiz. Eğer öyleyse final() fonksiyonunu çağırırız.
 
 ## 3: Limited parallel - an asynchronous, parallel, concurrency limited for loop
 
@@ -89,3 +98,4 @@ launcher();
 ```
 
 We start async operations until we reach the limit. In the callback decrements the number of running operations, and then check whether there are items left to process. If yes, then laucher() is run again. If there are no items to process and the current operation was the last running operation, then final() is called.
+Limite ulaşana kadar asenkron işlemlere başlıyoruz. Geri aramada, çalışan işlemlerin sayısı azaltılır ve ardından işlenecek öğe olup olmadığı kontrol edilir. Eğer evet ise, laucher() tekrar çalıştırılır. İşlenecek öğe yoksa ve geçerli işlem son çalışan işlemse final() çağrılır.
