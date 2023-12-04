@@ -148,3 +148,157 @@ It is also possible to generate report from within your application using:
 You can setup folder and report name with:
 `process.report.directory (--report-directory)`
 `process.report.filename (--report-filename)`
+
+
+### tr
+
+# Diagnostics
+
+## Debugging Node.js
+
+### Diagnosing issues with Chrome DevTools
+
+- node başlatırken `--inspect` bayrağını ekleyin.
+- Chrome DevTools'ta `chrome://inspect/#devices` bağlantısına gidin
+- Giriş noktası dosyanızı görmelisiniz. İlgili `inspect` bağlantısını tıklayın
+- Konsolda, giriş noktası dosyanıza bağlantı içeren bir günlük gösterecektir. Üzerine tıklayın, dosyanın kaynak kodunu göreceksiniz
+- Bir breakpoint ekleyin ve URL'ye gidin
+
+Hata ayıklama yeteneği(debug) V8 Javascript Motorundan gelir. Bayrağı kullanarak V8 denetçisi, hata ayıklama istemcisini dinlemek için WebSocket bağlantılarını kabul eden bir bağlantı noktası açacaktır.
+`devtools://` protokolünü kullanarak Chrome, bir Chrome DevTools arayüzü açacaktır.
+Bir breakpoint belirlediğimizde ve bununla karşılaşıldığında, olay döngüsü duraklatılacak ve V8 denetçisi mevcut durumu içeren bir WebSocket mesajı gönderecektir.
+Eğer devreye girersek, V8 denetçisine olay döngüsünün yürütülmesini geçici olarak sürdürecek bir komut gönderilecektir.
+
+`node inspect server.js`. komutunu kullanarak komut satırını kullanabilirsiniz.
+Hata ayıklama modu ilk satıra kadar duraklayacaktır. Bir `debug> ` modu göreceksiniz.
+Yazabilirsin:
+
+- help: komutların listesi için
+- line(x): aşağıdaki x satırları göster
+- setBreakpoint(x) (veya sb(x)): x satırına bir kesme noktası ayarlayın
+- cont: kesme noktasından sonra devam et
+- step: işleve adım atın
+- out: dışarı çıkma işlevi
+
+## Logging with Node.js (using pino)
+
+- `pino` ve `express-pino-logger` bağımlılıklarını ekleyin
+- PORT atamasından sonra pino'yu kaydedin:
+
+```
+const pino = require('pino')();
+const logger = require('express-pino-logger') ({
+    instance:pino
+});
+app.use(pino);
+```
+
+`express-pino-logger`, Express web sunucusu için Pino günlüğünü etkinleştiren bir ara yazılımdır. Pino logger ile hem doğrudan hem de ara yazılımımız aracılığıyla etkileşim kurabilmemiz için bağımsız olarak içe aktarılırlar.
+Pino arayüzü Log4j'ye dayanmaktadır. Hata mesajlarınızı seviyeye göre (izleme, hata ayıklama, bilgi, hata, uyarı ve ölümcül(trace, debug, info, error, warn and fatal)) gruplandırmanıza olanak tanır.
+Bu ara yazılım, gelen istek nesnesine bir günlük nesnesi ekler. Daha sonra `re.log.info()` (bilgi günlüğü için) çağrısını kaydedebilirsiniz; ayrıca tamamlanan her istek için bir günlük ekleyecektir.
+
+### Pino and web frameworks
+
+Pino'yu diğer popüler web frameworks entegre etmek mümkündür:
+
+- `express-pino-logger` = Pino için ekspres ara katman yazılımı
+- `hapi-pino` = Pino için Hapi eklentisi
+- `koa-pino` = Pino için Koa ara yazılımı
+- `restify-pino` = Pino için ara yazılımı yeniden düzenle
+
+Fastify'da Pino yerleşik kaydedicidir, yalnızca aşağıdaki gereksinimler sırasında yapılandırmanız gerekir:
+
+```
+const fastify = require('fastify')({
+    logger: true,
+})
+```
+
+## Logging with Morgan
+
+Morgan, Node.js için yalnızca HTTP isteğine yönelik olan ve genel amaçlara yönelik olmayan bir HTTP istek kaydedici ara yazılımıdır.
+Genellikle express ile kullanılır. `express-generator`ı kullanmak, halihazırda Morgan'ı içeren bir iskelet yaratacaktır.
+
+```
+var logger = require('morgan');
+app.use(logger('dev'));
+```
+
+parametresi ile kayıt formatını ayarlayabiliriz.
+
+## Logging with Winston
+
+Winston, log4j arayüzüne benzer bir arayüz ortaya çıkarıyor. Pino ve Winston arasındaki fark, Winston'ın çok sayıda yapılandırma seçeneği sunması ve günlük dönüştürme ve günlük döndürmeleri içermesidir.
+
+```
+var winston = require('winston');
+var expressWinston = require('express-winston'); //winston middleware
+app.use(expressWinston.logger({
+    transports: [
+        new winston.transports.Console({
+            json: true //expose log in json format
+        })
+    ]
+}));
+```
+
+## Enabling debug logs
+
+`debug` Express, Koa ve Mocha tarafından kullanılan küçük bir kütüphane aracıdır.
+Etkinleştirmek için sunucuyu aşağıdaki komutla başlatın:
+
+`DEBUG=* node server.js`
+
+değeri DEBUG= olarak belirterek günlük türüne göre de filtreleyebilirsiniz.
+Her istek için işlenen alt eylemlerin tam listesini konsolda görebilirsiniz.
+
+DEBUG, yazdırma talimatları için dahili `debug` modülü tarafından kullanılacak bir ortam değişkenidir.
+Ayrıca aşağıdaki gibi özel hata ayıklama mesajı da ekleyebilirsiniz:
+
+```
+const debug = require('debug')('my-server'); //message will be prepended with 'my-server'
+...
+
+debug('My message');
+
+```
+
+## Enabling Node.js core debug logs
+
+NODE_DEBUG ortam değişkenini aşağıdaki gibi bir dahili bayrağa ayarlayarak dahili Node.js'de hata ayıklamayı etkinleştirebilirsiniz:
+
+- `timer` = zamanlayıcı çekirdeği hata ayıklama günlükleri  timer core debug logs
+- `http` = dahili http modülü için günlük  log for internal http module
+
+ve diğer birçok dahili Node modülü (`https`, `http2`,`cluster`,`module`,`worker`,`tls`...)
+Virgülle ayırarak birden fazla bayrak ayarlayabilirsiniz.
+
+## Increasing stack trace size
+
+Varsayılan olarak yığın izleme boyutu 10 satırla sınırlıdır. Bayrağı kullanarak ayarlayarak boyutu artırabilirsiniz:
+`node --stack-trace-limit=20`
+Aşağıdakilerle koda göre ayarlamak da mümkündür:
+`Error.stackTraceLimit=20`
+`Error.stackTraceLimit=Infinity` Yığın izlemede sınır olmaması için 
+
+Node 12'den başlayarak eşzamansız yığın izlemeyi de günlüğe kaydedebilirsiniz.
+
+## Creating diagnostic reports
+
+Uygulamalardaki sorunları teşhis etmenize yardımcı olabilecek, belirli bir olaya ilişkin verileri içeren teşhis raporları oluşturabilirsiniz.
+Etkinleştirmek için, node başlatmak üzere bu komutu kullanın:
+`node --report-uncaught-exception server.js`
+
+Yakalanmayan bir istisna oluştuğunda, `report` klasöründe hata ayrıntılarını içeren bir json dosyası oluşturulacaktır.
+Tüm bayrak seçenekleri:
+
+- `--report-uncaught-exception` = yakalanmamış bir istisna meydana geldiğinde bir çökmeyi tetikler.
+- `--report-on-signal` = belirli bir sinyal alınırken.
+- `--report-on-fatalerror` = bellek yetersizliği gibi önemli bir hata durumunda.
+
+Aşağıdakileri kullanarak uygulamanızın içinden rapor oluşturmak da mümkündür:
+`process.report.writeReport()`
+
+Klasörü ve rapor adını aşağıdakilerle ayarlayabilirsiniz:
+`process.report.directory (--report-directory)`
+`process.report.filename (--report-filename)`

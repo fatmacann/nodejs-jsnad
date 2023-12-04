@@ -66,3 +66,75 @@ Be aware that unless the child environment is explicitly set, this environment v
 On a machine with 2 GB of memory, consider setting this to 1536 (1.5 GB) to leave some memory for other uses and avoid swapping.
 
 `node --max-old-space-size=1536 index.js`
+
+
+### tr
+
+# Node.js CLI
+
+Node.js çeşitli CLI seçenekleriyle birlikte gelir. Bu seçenekler yerleşik debugging, komut dosyalarını yürütmenin birden çok yolunu ve diğer yararlı çalışma zamanı seçeneklerini ortaya çıkarır.
+
+`node [options] [V8 options] [script.js | -e "script" | -] [--] [arguments]`
+
+- Tüm seçenekler, kelimelerin hem kısa çizgi (-) hem de alt çizgi (\_) ile ayrılmasına olanak tanır
+- Tek değer alan bir seçenek birden fazla kez iletilirse son iletilen değer kullanılır
+- Komut satırındaki seçenekler, NODE_OPTIONS ortam değişkeni aracılığıyla iletilen seçeneklere göre önceliklidir
+
+## Options
+
+Mevcut seçeneklerden bazıları:
+
+- `--enable-source-maps` = Yığın izlemeleri için Kaynak Haritası v3 desteğini etkinleştirin.
+- `--icu-data-dir=file` = ICU veri yükleme yolunu belirtin. (NODE_ICU_DATA'yı geçersiz kılar.)
+
+ICU (International Components for Unicode) = Yazılım uygulamaları için Unicode ve Globalizasyon desteği sağlayan kütüphaneler. Sağlanan bazı hizmetler:
+
+  - Code Page Conversion: Metin verilerini Unicode'a veya Unicode'dan ve hemen hemen tüm diğer karakter kümelerinden veya kodlamalardan dönüştürün.
+  - Collation: Dizeleri belirli bir dilin, bölgenin veya ülkenin kurallarına ve standartlarına göre karşılaştırın.
+  - Formatting: Sayıları, tarihleri, saatleri ve para birimi tutarlarını seçilen yerel ayarın kurallarına göre biçimlendirin.
+  - Time Calculations: Geleneksel Gregoryen takviminin ötesinde birden fazla takvim türü sağlanmaktadır.
+  (see more at http://site.icu-project.org/)
+
+- `--input-type=type` = (type = commonjs/module) Node.js'yi dize girişini CommonJS veya ES modülü olarak yorumlayacak şekilde yapılandırır
+- `--inspect[=[host:]port]` = `Host:port` üzerindeki denetçiyi etkinleştirin. Varsayılan 127.0.0.1:9229'dur.
+- `--max-http-header-size=size` = HTTP üstbilgilerinin bayt cinsinden maksimum boyutunu belirtin. Varsayılan olarak 16 KB'dir.
+- `--no-deprecation` = Kullanımdan kaldırma uyarılarını sessize alın.
+- `--no-force-async-hooks-checks` = async_hooks için çalışma zamanı kontrollerini devre dışı bırakır. async_hooks etkinleştirildiğinde bunlar yine de dinamik olarak etkinleştirilecektir.
+- `--no-warnings` = Tüm süreç uyarılarını (kullanımdan kaldırmalar dahil) susturun.
+- `--node-memory-debug` = Node.js içindeki bellek sızıntılarına karşı ekstra hata ayıklama kontrollerini etkinleştirin. Bu genellikle yalnızca Node.js'de hata ayıklama yapan geliştiriciler için kullanışlıdır.
+- `--preserve-symlinks` = Modül yükleyiciye, modülleri çözümlerken ve önbelleğe alırken sembolik bağları koruması talimatını verir.
+
+Varsayılan olarak, Node.js, sembolik olarak farklı bir disk üzerindeki konuma bağlı bir yoldan bir modül yüklediğinde, Node.js bağlantının referansını kaldıracak ve hem tanımlayıcı olarak hem de modülün diskteki gerçek "gerçek yolunu" kullanacaktır. ve diğer bağımlılık modüllerini bulmak için kök yolu olarak. Çoğu durumda bu varsayılan davranış kabul edilebilirdir. Bununla birlikte, sembolik olarak bağlantılı eş bağımlılıkları kullanıldığında, modülA'nın eş bağımlılık olarak modülB'yi gerektirmeye çalışması durumunda varsayılan davranış bir istisnanın oluşturulmasına neden olur.
+
+`--prof` = V8 profil oluşturucu çıktısını oluştur.
+`--prof-process` = V8 seçeneği --prof kullanılarak oluşturulan süreç V8 profil oluşturucu çıktısı.
+`--report-filename=filename` = Raporun yazılacağı dosyanın adı.
+`--report-on-fatalerror` = Uygulamanın sonlandırılmasına yol açan önemli hatalarda (Node.js çalışma zamanı içindeki bellek yetersizliği gibi dahili hatalar) raporun tetiklenmesini sağlar. Önemli hatanın nedenini belirlemek için yığın, yığın, olay döngüsü durumu, kaynak tüketimi vb. gibi çeşitli tanılama veri öğelerini incelemek faydalıdır.
+`--report-uncaught- Exception` = Yakalanmayan istisnalar hakkında rapor oluşturulmasını sağlar. Yerel yığın ve diğer çalışma zamanı ortamı verileriyle birlikte JavaScript yığınını incelerken kullanışlıdır.
+`--unhandled-rejections=mode` = Bu bayrağın kullanılması, işlenmeyen bir reddetme meydana geldiğinde ne olması gerektiğini değiştirmeye olanak tanır. Aşağıdaki modlardan biri seçilebilir:
+
+- throw: unhandledRejection yayınlayın. Bu hook ayarlanmazsa, işlenmeyen reddetmeyi yakalanmamış bir istisna olarak yükseltin. Bu varsayılandır.
+- strict: unhandled rejection, uncaught exception olarak yükseltin.
+- warn: İşlenmeyen Reddetme kancasının ayarlanıp ayarlanmadığına bakılmaksızın her zaman bir uyarı tetikleyin, ancak kullanımdan kaldırma uyarısını yazdırmayın.
+- warn-with-error-code: İşlenmeyen Reddetme yayınlayın. Bu kanca ayarlanmazsa bir uyarı tetikleyin ve işlem çıkış kodunu 1 olarak ayarlayın.
+- none: Tüm uyarıları susturun.
+
+## Environment variables
+
+Mevcut env'lerden bazıları:
+
+`NODE_DEBUG=module[,…]` = Hata ayıklama bilgilerini yazdırması gereken çekirdek modüllerin ',' ile ayrılmış listesi.
+`NODE_ICU_DATA=file` = ICU (Intl nesne) verileri için veri yolu. Küçük icu desteğiyle derlendiğinde bağlantılı verileri genişletir.
+`NODE_NO_WARNINGS=1` = 1'e ayarlandığında süreç uyarıları susturulur.
+`NODE_OPTIONS=options...` = Komut satırı seçeneklerinin boşlukla ayrılmış listesi. `options...` komut satırı seçeneklerinden önce yorumlanır, dolayısıyla komut satırı seçenekleri `options...` içindeki herhangi bir şeyi geçersiz kılar veya birleştirir. -p veya betik dosyası gibi ortamda izin verilmeyen bir seçenek kullanılırsa Node.js bir hatayla çıkacaktır.
+`NODE_PATH=path[:…]` = Modül arama yolunun önüne eklenen dizinlerin ':' ile ayrılmış listesi. Windows'ta bu, ';' ile ayrılmış bir listedir.
+`NODE_TLS_REJECT_UNAUTHORIZED=value` = Değer '0'a eşitse, TLS bağlantıları için sertifika doğrulaması devre dışı bırakılır. Bu, TLS'yi ve HTTPS'yi uzantı olarak güvensiz hale getirir. Bu ortam değişkeninin kullanılması kesinlikle önerilmez.
+`SSL_CERT_FILE=file` = --use-openssl-ca etkinleştirilirse, bu, OpenSSL'nin güvenilir sertifikalar içeren dosyasını geçersiz kılar ve ayarlar.
+Alt ortam açıkça ayarlanmadığı sürece, bu ortam değişkeninin tüm alt işlemler tarafından devralınacağını ve OpenSSL kullanıyorlarsa bunun, node.js ile aynı CA'lara güvenmelerine neden olabileceğini unutmayın.
+
+## Useful V8 options
+
+`--max-old-space-size=SIZE (in megabytes)` = V8'in eski bellek bölümünün maksimum bellek boyutunu ayarlar. Bellek tüketimi sınıra yaklaştıkça, V8 kullanılmayan belleği serbest bırakmak amacıyla çöp toplamaya daha fazla zaman harcayacaktır.
+2 GB belleğe sahip bir makinede, belleğin bir kısmını diğer kullanımlar için bırakmak ve değiştirmeyi önlemek için bunu 1536 (1,5 GB) olarak ayarlamayı düşünün.
+
+`node --max-old-space-size=1536 index.js`

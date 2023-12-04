@@ -150,3 +150,159 @@ listener 2
 ```
 
 If you need to remove a listener, you can use the `removeListener` method.
+
+
+### tr
+
+# Events
+
+## The EventEmitter Module
+
+EventEmitter, Node.js'deki nesneler arasındaki iletişimi kolaylaştıran yerleşik bir Node.js modülüdür. Özel etkinlikler oluşturmanıza, başlatmanıza ve dinlemenize olanak tanır.
+Verici nesneler, önceden kayıtlı dinleyicilerin çağrılmasına neden olan adlandırılmış olaylar yayar.
+EventEmitter nesneleri olaylar yayar ve nesne tarafından yayılan adlandırılmış olaylara bir veya daha fazla işlevin eklenmesine olanak tanıyan bir eventEmitter.on() işlevini kullanıma sunar.
+EventEmitter nesnesi bir olay yayınladığında, o belirli olaya eklenen tüm işlevler eşzamanlı olarak çağrılır.
+
+```
+class MyEmitter extends EventEmitter {
+
+}
+
+const myEmitter = new MyEmitter();
+myEmitter.emit('something-happened');
+```
+
+Example:
+
+```
+const EventEmitter = require('events');
+
+class WithLog extends EventEmitter {
+  execute(taskFunc) {
+    console.log('Before executing');
+    this.emit('begin');
+    taskFunc();
+    this.emit('end');
+    console.log('After executing');
+  }
+}
+
+const withLog = new WithLog();
+
+withLog.on('begin', () => console.log('About to execute'));
+withLog.on('end', () => console.log('Done with execute'));
+
+withLog.execute(() => console.log('*** Executing task ***'));
+```
+
+this will result in:
+
+```
+Before executing
+About to execute
+*** Executing task ***
+Done with execute
+After executing
+```
+
+### Some common properties and methods of the events module
+
+| EventEmitter methods | Description |
+| addListener(event, listener) | Belirtilen olay için dinleyici dizisinin sonuna bir dinleyici ekler. Dinleyicinin daha önce eklenip eklenmediğine dair herhangi bir kontrol yapılmaz. |
+| on(event, listener) | Ayrıca emitter.addListener() | takma adı olarak da adlandırılabilir.
+| once(event, listener) | Etkinliğe tek seferlik bir dinleyici ekler. Bu dinleyici yalnızca olayın bir sonraki tetiklenişinde çağrılır ve ardından kaldırılır. |
+| emit(event, [arg1], [arg2], [...]) | Belirtilen olayları sağlanan bağımsız değişkenlerle yükseltin. |
+| RemoveListener(event, listener) | Belirtilen olay için dinleyici dizisinden bir dinleyiciyi kaldırır. Dikkat: dinleyicinin arkasındaki dinleyici dizisindeki dizi indekslerini değiştirir. |
+| removeAllListeners([event]) | Tüm dinleyicileri veya belirtilen olayın dinleyicilerini kaldırır. |
+
+### EventEmitter and asynchronous events
+
+Eşzamansız (geri arama stili) işlevler için aynı örneği yeniden yazın:
+
+```
+const fs = require('fs');
+const EventEmitter = require('events');
+
+class WithTime extends EventEmitter {
+  execute(asyncFunc, ...args) {
+    this.emit('begin');
+    console.time('execute');
+    asyncFunc(...args, (err, data) => {
+      if (err) {
+        return this.emit('error', err);
+      }
+
+      this.emit('data', data);
+      console.timeEnd('execute');
+      this.emit('end');
+    });
+  }
+}
+
+const withTime = new WithTime();
+
+withTime.on('begin', () => console.log('About to execute'));
+withTime.on('end', () => console.log('Done with execute'));
+
+withTime.execute(fs.readFile, __filename);
+```
+
+async işlevlerin olay işleyicileriyle kullanılması sorunludur çünkü atılan bir özel durum durumunda işlenmeyen bir reddetmeye yol açabilir. `events.captureRejections = true` ayarının yapılması, tüm yeni EventEmitter örnekleri için varsayılanı değiştirecektir.
+
+```
+const events = require('events');
+events.captureRejections = true;
+const ee1 = new events.EventEmitter();
+ee1.on('something', async (value) => {
+  throw new Error('kaboom');
+});
+
+ee1.on('error', console.log);
+```
+
+### Events Arguments and Errors
+
+Adlandırılmış olaydan sonra ihtiyaç duyduğumuz kadar argüman kullanabiliriz ve bu argümanların tümü, bu adlandırılmış olaylar için kaydettiğimiz listener fonksiyonların içinde bulunacaktır.
+
+```
+this.emit('data', data);
+
+emitter.on('data', (data) => {
+  // do something with data
+});
+```
+
+`error` olayı genellikle özel bir olaydır. Eğer `error` olayını bir dinleyici ile ele almazsak, node prosesinden gerçekten çıkılacaktır.
+Hatayı işlemek için error olayına bir dinleyici eklemeniz gerekir.
+`events.errorMonitor` sembolünü kullanarak bir dinleyici yükleyerek, yayılan hatayı tüketmeden `error` olaylarını izlemek mümkündür.
+Yayılan hatalardan kaynaklanan istisnaları ele almanın diğer yolu, global uncaughtException süreç olayı için bir dinleyici kaydetmektir. Ancak bu olayla ilgili hataları küresel olarak yakalamak kötü bir fikirdir.
+
+`EventEmitter` modülü bir `once` yöntemini ortaya çıkarır. Bu yöntem, dinleyiciyi her seferinde değil, yalnızca bir kez çağırma sinyali verir.
+
+Aynı olay için birden fazla dinleyici kaydedersek bu dinleyicilerin çağrılması sıralı olacaktır. Kaydettiğimiz ilk dinleyici çağrılan ilk dinleyicidir. Ancak yeni bir dinleyici tanımlamanız gerekiyorsa ve önce bu dinleyicinin çağrılmasını istiyorsanız `prependListener` yöntemini kullanabilirsiniz:
+
+```
+myEmitter.on('data', (data) => {
+  console.log('listener 1');
+});
+
+myEmitter.on('data', (data) => {
+  console.log('listener 2');
+});
+
+myEmitter.prependListener('data', (data) => {
+  console.log('listener 3');
+});
+
+withTime.execute(fs.readFile, __filename);
+```
+
+In this example, the output will be:
+
+```
+listener 3
+listener 1
+listener 2
+```
+
+Bir dinleyiciyi kaldırmanız gerekiyorsa `removeListener` yöntemini kullanabilirsiniz.
